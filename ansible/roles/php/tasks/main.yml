@@ -1,0 +1,115 @@
+---
+- name: Install PHP
+  apt: pkg={{item}} state=installed
+  with_items: php.packages
+  when: php.packages is defined
+
+- name: install composer
+  shell: curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  args:
+    creates: /usr/local/bin/composer
+
+
+- name: ensure php5-fpm cgi.fix_pathinfo=0
+  lineinfile: dest=/etc/php5/fpm/php.ini regexp='^(.*)cgi.fix_pathinfo=' line=cgi.fix_pathinfo=0
+  notify:
+    - restart php5-fpm
+    - restart nginx
+
+
+- name: enable php5 mcrypt module
+  shell: php5enmod mcrypt
+  args:
+    creates: /etc/php5/cli/conf.d/20-mcrypt.ini
+
+
+- name: Load xdebug config
+  sudo: yes
+  template: src=20-xdebug.ini dest=/etc/php5/fpm/conf.d/20-xdebug.ini
+  notify: restart php5-fpm
+
+
+- name: ensure timezone is set in cli php.ini
+  lineinfile: "dest=/etc/php5/cli/php.ini state=present
+              regexp='^;?date.timezone ='
+              line='date.timezone = {{ server.timezone }}'"
+
+
+- name: ensure timezone is set in fpm php.ini
+  lineinfile: "dest=/etc/php5/fpm/php.ini state=present
+              regexp='^;?date.timezone ='
+              line='date.timezone = {{ server.timezone }}'"
+
+
+- name: Display Errors
+  lineinfile: "dest=/etc/php5/fpm/php.ini
+              regexp='^;?display_errors = (Off|On)'
+              line='display_errors = On'"
+
+
+- name: Enable error reporting
+  lineinfile: "dest=/etc/php5/fpm/php.ini
+              regexp='^;?error_reporting ='
+              line='error_reporting = -1'"
+
+
+- name: Enable startup errors
+  lineinfile: "dest=/etc/php5/fpm/php.ini
+              regexp='^;?display_startup_errors = (Off|On)'
+              line='display_startup_errors = On'"
+
+
+- name: Increase Post Max Size to 50MB
+  lineinfile: "dest=/etc/php5/fpm/php.ini
+              regexp='^;?post_max_size ='
+              line='post_max_size = 50M'"
+
+
+- name: Increase Upload Max Size to 50MB
+  lineinfile: "dest=/etc/php5/fpm/php.ini state=present
+              regexp='^;?upload_max_filesize ='
+              line='upload_max_filesize = 50M'"
+
+
+- name: enabling opcache
+  lineinfile: "dest=/etc/php5/fpm/php.ini state=present
+              regexp='^;?opcache.enable=\\d'
+              line='opcache.enable=1'"
+
+
+- name: Set listen directive to unix domain socket
+  lineinfile: "dest=/etc/php5/fpm/pool.d/www.conf state=present
+              regexp='^;?listen'
+              line='listen = /var/run/php5-fpm.sock'"
+
+
+- name: Set permissions on socket - owner
+  lineinfile: "dest=/etc/php5/fpm/pool.d/www.conf state=present
+              regexp='^;?listen.owner'
+              line='listen.owner = {{server.user}}'"
+
+
+- name: Set permissions on socket - group
+  lineinfile: "dest=/etc/php5/fpm/pool.d/www.conf state=present
+              regexp='^;?listen.group'
+              line='listen.group = {{server.user}}'"
+
+
+- name: Set permissions on process - owner
+  lineinfile: "dest=/etc/php5/fpm/pool.d/www.conf state=present
+              regexp='^user ='
+              line='user = {{server.user}}'"
+
+
+- name: Set permissions on process - group
+  lineinfile: "dest=/etc/php5/fpm/pool.d/www.conf state=present
+              regexp='^group ='
+              line='group = {{server.user}}'"
+
+
+- name: Set permissions on socket - mode
+  lineinfile: "dest=/etc/php5/fpm/pool.d/www.conf state=present
+              regexp='^;?listen.mode'
+              line='listen.mode = 0666'"
+  notify: restart php5-fpm
+

@@ -1,0 +1,55 @@
+---
+# Retrieve the current hostname, because {{ ansible_hostname }} still contains the old name
+- shell: hostname
+  register: current_hostname
+
+
+- name: Install MySQL
+  sudo: yes
+  apt: pkg={{ item }} state=latest
+  with_items:
+    - mysql-server
+    - mysql-client
+    - python-mysqldb
+
+
+- name: Update root password for all root accounts
+  mysql_user: name=root host={{ item }} check_implicit_admin=yes password={{ mysql.root_password }} login_user=root login_password={{ mysql.root_password }}
+  with_items:
+    - "{{ current_hostname.stdout | lower }}"
+    - 127.0.0.1
+    - ::1
+    - localhost
+
+
+- name: Create databases
+  mysql_db: name={{ mysql.database }} state=present login_user=root login_password={{ mysql.root_password }}
+
+
+- name: Ensure anonymous users are not in the database
+  mysql_user: name='' host={{ item }} state=absent login_user=root login_password={{ mysql.root_password }}
+  with_items:
+    - localhost
+    - "{{ current_hostname.stdout | lower }}"
+
+
+- name: Create users
+  mysql_user: name={{ mysql.username }} password={{ mysql.password }} priv={{ mysql.database }}.*:ALL state=present login_user=root login_password={{ mysql.root_password }}
+
+
+- name: Enable slow query logging
+  lineinfile: "dest=/etc/mysql/my.cnf state=present
+              regexp='^#?log_slow_queries'
+              line='log_slow_queries = /var/log/mysql/mysql-slow.log'"
+
+
+- name: Set slow query log time to 2 seconds
+  lineinfile: "dest=/etc/mysql/my.cnf state=present
+              regexp='^#?long_query_time'
+              line='long_query_time = 2'"
+
+
+- name: Remove address binding
+  lineinfile: "dest=/etc/mysql/my.cnf
+            regexp='^bind-address'
+            line='bind-address = 0.0.0.0'"

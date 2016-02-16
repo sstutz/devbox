@@ -1,0 +1,29 @@
+---
+- name: install core utils
+  apt: pkg={{item}} state=installed
+  with_items:
+      - htop
+      - curl
+      - vim
+      - git
+      - ntp
+      - apt-transport-https
+      - ca-certificates
+      - python-pycurl
+
+
+- name: Configure timezone
+  sudo: yes
+  copy: content={{ server.timezone }} dest=/etc/timezone
+
+
+- name: check if zone info exists
+  command: test -f "/usr/share/zoneinfo/{{server.timezone}}"
+  register: exists
+  ignore_errors: true
+
+
+- name: Configure localtime
+  sudo: yes
+  file: src=/usr/share/zoneinfo/{{server.timezone}} dest=/etc/localtime state=link force=yes backup=yes
+  when: "{{exists|success}}"

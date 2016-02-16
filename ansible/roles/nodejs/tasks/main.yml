@@ -1,0 +1,35 @@
+---
+- name: Import nodesource's public key
+  apt_key:
+    url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+    state: present
+
+
+- name: Add NodeSource deb repository
+  apt_repository:
+    repo: 'deb https://deb.nodesource.com/node_{{nodejs.version}} {{ ansible_distribution_release }} main'
+    state: present
+
+
+- name: Add NodeSource deb-src repository
+  apt_repository:
+    repo: 'deb-src https://deb.nodesource.com/node_{{nodejs.version}} {{ ansible_distribution_release }} main'
+    state: present
+
+
+- name: Add NodeSource repository preferences
+  template:
+    src: deb_nodesource_com_node.pref
+    dest: /etc/apt/preferences.d/deb_nodesource_com_node.pref
+
+
+- name: Install Node.js
+  apt: pkg=nodejs state=latest
+
+
+- name: Install Gulp
+  npm: name=gulp-cli global=yes
+
+- name: Install Bower
+  npm: name=bower global=yes
+

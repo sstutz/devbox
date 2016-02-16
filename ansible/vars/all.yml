@@ -1,0 +1,22 @@
+---
+server:
+    user: vagrant
+    timezone: UTC
+    locale: en_US.UTF-8
+
+nginx:
+    docroot: /vagrant
+    servername:
+
+mysql:
+    root_password: 'secret'
+    database: db
+    username: user
+    password: secret
+
+php:
+    packages: [php5, php5-cli, php5-curl, php5-fpm, php5-intl, php5-json, php5-mcrypt, php5-sqlite, php5-mysqlnd, php5-xdebug, php5-dbg]
+
+nodejs:
+    nodesource_pin_priority: 500
+    version: "5.x"

@@ -1,0 +1,32 @@
+---
+- name: Install Nginx
+  sudo: yes
+  apt: pkg=nginx state=latest
+
+
+- name: Set server names bucket size
+  lineinfile: "dest=/etc/nginx/nginx.conf
+              regexp='server_names_hash_bucket_size'
+              line='server_names_hash_bucket_size 64;'"
+
+
+- name: Set nginx user
+  lineinfile: "dest=/etc/nginx/nginx.conf
+              regexp='^user '
+              line='user {{server.user}};'"
+
+
+- name: Change default nginx site
+  sudo: yes
+  template: src=default.j2 dest=/etc/nginx/sites-available/default
+  notify: restart nginx
+
+
+- name: create global config folder
+  file: dest=/etc/nginx/conf.d/global state=directory
+
+
+- name: Set default nginx configuration files
+  template: src={{ item }} dest=/etc/nginx/conf.d/global/{{ item | basename }}
+  with_fileglob:
+    - ../templates/global/*.conf

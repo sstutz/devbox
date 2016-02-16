@@ -1,0 +1,13 @@
+---
+- hosts: all
+  sudo: yes
+  gather_facts: yes
+  remote_user: vagrant
+  vars_files:
+    - vars/all.yml
+  roles:
+    - common
+    - nginx
+    - php
+    - mysql
+    - nodejs
